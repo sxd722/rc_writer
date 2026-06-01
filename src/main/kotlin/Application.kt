@@ -31,9 +31,23 @@ fun main() {
                     appendLine("import androidx.compose.remote.creation.dsl.*")
                     appendLine("import androidx.compose.remote.creation.modifiers.*")
                     appendLine("import androidx.compose.remote.creation.actions.*")
+                    appendLine("import androidx.compose.remote.creation.profile.*")
+                    appendLine("import androidx.compose.remote.creation.compose.state.*")
+                    appendLine("import androidx.compose.remote.core.RcPlatformServices")
+                    appendLine("import androidx.compose.ui.graphics.Color")
+                    appendLine("import androidx.compose.ui.text.font.FontWeight")
                     appendLine()
-                    append(dslScript)
+                    appendLine("val __profile = RcProfile(Profile(7, 512, RcPlatformServices.None) { info, prof, cb ->")
+                    appendLine("    RemoteComposeWriter(info, \"UTF-8\", prof, cb)")
+                    appendLine("})")
+                    appendLine("createRcBuffer(__profile) {")
+                    appendLine(dslScript)
+                    appendLine("}")
                 }
+
+                println("--- COMPILING SCRIPT ---")
+                println(fullScript)
+                println("------------------------")
 
                 try {
                     val result = engine.eval(fullScript)
