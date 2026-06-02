@@ -3,3 +3,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 *.class
 *.log
+.kotlin/
+androidx/
+classes.jar
+output.rc
