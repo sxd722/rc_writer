@@ -7,6 +7,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import javax.script.ScriptEngineManager
+import javax.script.ScriptException
 
 fun main() {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -27,38 +28,101 @@ fun main() {
                     )
 
                 val fullScript = buildString {
-                    appendLine("import androidx.compose.remote.creation.*")
                     appendLine("import androidx.compose.remote.creation.dsl.*")
                     appendLine("import androidx.compose.remote.creation.modifiers.*")
                     appendLine("import androidx.compose.remote.creation.actions.*")
                     appendLine("import androidx.compose.remote.creation.profile.*")
+                    appendLine("import androidx.compose.remote.creation.RemoteComposeWriter")
                     appendLine("import androidx.compose.remote.core.RcPlatformServices")
                     appendLine("import androidx.compose.ui.graphics.Color")
+                    appendLine("import androidx.compose.ui.graphics.toArgb")
                     appendLine("import androidx.compose.ui.text.font.FontWeight")
                     appendLine()
                     appendLine("val RemoteModifier get() = Modifier")
-                    appendLine("val Color.rc: Int get() = (red * 255f).toInt().let { r -> (green * 255f).toInt().let { g -> (blue * 255f).toInt().let { b -> (alpha * 255f).toInt().shl(24).or(r.shl(16)).or(g.shl(8)).or(b) } } }")
-                    appendLine("class RemoteRoundedCornerShape(val r: RcDp)")
-                    appendLine("object RemoteArrangement { val SpaceEvenly = RcRowHorizontalPositioning.SpaceEvenly; val SpaceBetween = RcRowHorizontalPositioning.SpaceBetween; val SpaceAround = RcRowHorizontalPositioning.SpaceAround; val Start = RcRowHorizontalPositioning.Start; val End = RcRowHorizontalPositioning.End }")
-                    appendLine("object RemoteAlignment { val Center = 0; val Start = 1; val End = 2; val Top = 3; val Bottom = 4 }")
+                    appendLine("val Color.rc: Int get() = this.toArgb()")
                     appendLine()
                     appendLine("fun Modifier.clickable(name: String): Modifier = onClick { hostAction(name) }")
-                    appendLine("fun Modifier.padding(horizontal: RcDp, vertical: RcDp): Modifier = padding(horizontal.value, vertical.value, horizontal.value, vertical.value)")
-                    appendLine("fun Modifier.padding(vertical: RcDp): Modifier = padding(0f, vertical.value, 0f, vertical.value)")
-                    appendLine("fun Modifier.background(color: Int, shape: RemoteRoundedCornerShape?): Modifier { var m: Modifier = this; if (shape != null) m = m.clip(RoundedRectShape(shape.r.value, shape.r.value, shape.r.value, shape.r.value)); return m.background(color) }")
-                    appendLine("fun Modifier.border(width: RcDp, color: Int, shape: RemoteRoundedCornerShape?): Modifier = border(width.value, 0f, color, if (shape != null) 2 else 0)")
                     appendLine()
-                    appendLine("fun RcScope.RemoteColumn(modifier: Modifier = Modifier, content: RcColumnScope.() -> Unit) = Column(modifier = modifier, content = content)")
-                    appendLine("fun RcScope.RemoteRow(modifier: Modifier = Modifier, horizontalArrangement: RcRowHorizontalPositioning = RcRowHorizontalPositioning.Start, content: RcRowScope.() -> Unit) = Row(modifier = modifier, horizontal = horizontalArrangement, content = content)")
-                    appendLine("fun RcScope.RemoteBox(modifier: Modifier = Modifier, contentAlignment: Any? = null, content: RcScope.() -> Unit) = Box(modifier = modifier, horizontal = RcHorizontalPositioning.Center, vertical = RcVerticalPositioning.Center, content = content)")
-                    appendLine("fun RcScope.RemoteText(text: String, modifier: Modifier = Modifier, color: Any = 0, fontSize: RcSp = 0.rsp, fontWeight: Any? = null) = Text(text = text, modifier = modifier, color = color, fontSize = fontSize, fontWeight = when(fontWeight) { is FontWeight -> fontWeight.weight.toFloat(); is Number -> fontWeight.toFloat(); else -> 0f })")
+                    appendLine("fun Modifier.background(color: Int, cornerRadius: RcDp): Modifier =")
+                    appendLine("    clip(RoundedRectShape(cornerRadius.value, cornerRadius.value, cornerRadius.value, cornerRadius.value)).background(color)")
+                    appendLine()
+                    appendLine("fun Modifier.padding(start: RcDp, top: RcDp, end: RcDp, bottom: RcDp): Modifier =")
+                    appendLine("    padding(start.value, top.value, end.value, bottom.value)")
+                    appendLine()
+                    appendLine("fun Modifier.padding(horizontal: RcDp, vertical: RcDp): Modifier =")
+                    appendLine("    padding(horizontal.value, vertical.value, horizontal.value, vertical.value)")
+                    appendLine()
+                    appendLine("fun RcScope.RemoteColumn(")
+                    appendLine("    modifier: Modifier = Modifier,")
+                    appendLine("    horizontalAlignment: Any? = null,")
+                    appendLine("    verticalArrangement: Any? = null,")
+                    appendLine("    cornerRadius: RcDp? = null,")
+                    appendLine("    content: RcColumnScope.() -> Unit")
+                    appendLine(") {")
+                    appendLine("    val m = if (cornerRadius != null)")
+                    appendLine("        modifier.clip(RoundedRectShape(cornerRadius.value, cornerRadius.value, cornerRadius.value, cornerRadius.value))")
+                    appendLine("    else modifier")
+                    appendLine("    val hAlign = when (horizontalAlignment?.toString()?.trim('\"')) {")
+                    appendLine("        \"CenterHorizontally\", \"Center\" -> RcHorizontalPositioning.Center")
+                    appendLine("        \"End\" -> RcHorizontalPositioning.End")
+                    appendLine("        else -> RcHorizontalPositioning.Start")
+                    appendLine("    }")
+                    appendLine("    Column(modifier = m, horizontal = hAlign, content = content)")
+                    appendLine("}")
+                    appendLine()
+                    appendLine("fun RcScope.RemoteRow(")
+                    appendLine("    modifier: Modifier = Modifier,")
+                    appendLine("    horizontalArrangement: RcRowHorizontalPositioning = RcRowHorizontalPositioning.Start,")
+                    appendLine("    verticalAlignment: Any? = null,")
+                    appendLine("    cornerRadius: RcDp? = null,")
+                    appendLine("    content: RcRowScope.() -> Unit")
+                    appendLine(") {")
+                    appendLine("    val m = if (cornerRadius != null)")
+                    appendLine("        modifier.clip(RoundedRectShape(cornerRadius.value, cornerRadius.value, cornerRadius.value, cornerRadius.value))")
+                    appendLine("    else modifier")
+                    appendLine("    Row(modifier = m, horizontal = horizontalArrangement, content = content)")
+                    appendLine("}")
+                    appendLine()
+                    appendLine("fun RcScope.RemoteBox(")
+                    appendLine("    modifier: Modifier = Modifier,")
+                    appendLine("    contentAlignment: Any? = null,")
+                    appendLine("    clickableAction: String? = null,")
+                    appendLine("    cornerRadius: RcDp? = null,")
+                    appendLine("    content: RcScope.() -> Unit")
+                    appendLine(") {")
+                    appendLine("    var m = modifier")
+                    appendLine("    if (cornerRadius != null)")
+                    appendLine("        m = m.clip(RoundedRectShape(cornerRadius.value, cornerRadius.value, cornerRadius.value, cornerRadius.value))")
+                    appendLine("    if (clickableAction != null)")
+                    appendLine("        m = m.clickable(clickableAction)")
+                    appendLine("    Box(modifier = m, content = content)")
+                    appendLine("}")
+                    appendLine()
+                    appendLine("fun RcScope.RemoteText(")
+                    appendLine("    text: String,")
+                    appendLine("    modifier: Modifier = Modifier,")
+                    appendLine("    color: Any = 0,")
+                    appendLine("    fontSize: RcSp = 0.rsp,")
+                    appendLine("    fontWeight: Any? = null")
+                    appendLine(") = Text(text = text, modifier = modifier, color = color, fontSize = fontSize,")
+                    appendLine("    fontWeight = when (fontWeight) {")
+                    appendLine("        is FontWeight -> fontWeight.weight.toFloat()")
+                    appendLine("        is Number -> fontWeight.toFloat()")
+                    appendLine("        else -> 0f")
+                    appendLine("    })")
+                    appendLine()
                     appendLine("fun RcScope.RemoteSpacer(modifier: Modifier = Modifier) = Spacer(modifier = modifier)")
                     appendLine()
                     appendLine("val __profile = RcProfile(Profile(7, 512, RcPlatformServices.None) { info, prof, cb ->")
                     appendLine("    RemoteComposeWriter(info, \"UTF-8\", prof, cb)")
                     appendLine("})")
                     appendLine("createRcBuffer(__profile) {")
-                    appendLine(dslScript)
+                    var cleanDsl = dslScript.trim()
+                    if (cleanDsl.startsWith("```")) {
+                        cleanDsl = cleanDsl.substringAfter("\n").substringBeforeLast("```").trim()
+                    }
+                    cleanDsl = cleanDsl.replace('\u00A0', ' ').replace(Regex("[\\u2007\\u202F]"), " ")
+                    appendLine(cleanDsl)
                     appendLine("}")
                 }
 
@@ -76,9 +140,19 @@ fun main() {
                             status = HttpStatusCode.BadRequest
                         )
                     }
+                } catch (e: ScriptException) {
+                    var cause: Throwable = e
+                    while (cause.cause != null) cause = cause.cause!!
+                    val msg = buildString {
+                        appendLine(cause.toString())
+                        cause.stackTrace.take(8).forEach { appendLine("  at $it") }
+                    }
+                    call.respondText(msg, status = HttpStatusCode.BadRequest)
                 } catch (e: Exception) {
+                    var cause: Throwable = e
+                    while (cause.cause != null) cause = cause.cause!!
                     call.respondText(
-                        e.message ?: "Compilation failed",
+                        cause.message ?: cause.toString(),
                         status = HttpStatusCode.BadRequest
                     )
                 }
